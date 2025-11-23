@@ -1,0 +1,33 @@
+# Data files (large downloads)
+data/raw/*.csv
+data/raw/*.txt
+data/raw/*.gz
+data/processed/
+
+# Environment variables (contains passwords)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
