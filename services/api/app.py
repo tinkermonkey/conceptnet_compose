@@ -43,6 +43,69 @@ def return_db_connection(conn):
     db_pool.putconn(conn)
 
 
+def format_node(node_uri):
+    """Format a node URI into ConceptNet API format"""
+    # Extract language and term from URI like /c/en/apple
+    parts = node_uri.split('/')
+    if len(parts) >= 4 and parts[1] == 'c':
+        language = parts[2]
+        term = '/'.join(parts[3:])
+        return {
+            '@id': node_uri,
+            'term': node_uri,
+            'label': term.replace('_', ' '),
+            'language': language
+        }
+    return {
+        '@id': node_uri,
+        'term': node_uri,
+        'label': node_uri,
+        'language': 'unknown'
+    }
+
+
+def format_edge(row):
+    """Format an edge row into ConceptNet API format
+
+    Args:
+        row: tuple of (uri, relation, relation_label, start_node, end_node,
+                      weight, dataset, surface_text, metadata)
+    """
+    uri = row[0]
+    relation = row[1]
+    start_node = row[3]
+    end_node = row[4]
+    weight = float(row[5]) if row[5] else 1.0
+    surface_text = row[7]
+
+    # Build @id in format: /r/RelatedTo/c/en/apple/c/en/fruit
+    # Remove leading slashes from nodes for concatenation
+    start_clean = start_node.lstrip('/')
+    end_clean = end_node.lstrip('/')
+    edge_id = f"{relation}/{start_clean}/{end_clean}"
+
+    edge = {
+        '@id': edge_id,
+        'start': format_node(start_node),
+        'end': format_node(end_node),
+        'weight': weight,
+        'surfaceText': surface_text if surface_text else None
+    }
+
+    # Add metadata if present
+    if row[8]:
+        try:
+            metadata = json.loads(row[8])
+            if 'dataset' in metadata:
+                edge['dataset'] = metadata['dataset']
+            if 'license' in metadata:
+                edge['license'] = metadata['license']
+        except:
+            pass
+
+    return edge
+
+
 @app.route('/')
 def index():
     """API root endpoint"""
@@ -185,35 +248,19 @@ def get_concept(concept):
         rows = cursor.fetchall()
 
         # Format results
-        edges = []
-        for row in rows:
-            edge = {
-                'uri': row[0],
-                'rel': row[1],
-                'rel_label': row[2],
-                'start': row[3],
-                'end': row[4],
-                'weight': float(row[5]) if row[5] else 1.0,
-                'dataset': row[6],
-                'surfaceText': row[7],
-            }
-            # Parse metadata if present
-            if row[8]:
-                try:
-                    edge['metadata'] = json.loads(row[8])
-                except:
-                    pass
-            edges.append(edge)
+        edges = [format_edge(row) for row in rows]
 
         cursor.close()
         return_db_connection(conn)
 
+        # Build @id for the query
+        query_id = f"{concept}?limit={limit}&offset={offset}"
+        if rel_filter:
+            query_id += f"&rel={rel_filter}"
+
         return jsonify({
-            'concept': concept,
-            'edges': edges,
-            'count': len(edges),
-            'limit': limit,
-            'offset': offset
+            '@id': query_id,
+            'edges': edges
         })
 
     except Exception as e:
@@ -301,41 +348,31 @@ def query():
         rows = cursor.fetchall()
 
         # Format results
-        edges = []
-        for row in rows:
-            edge = {
-                'uri': row[0],
-                'rel': row[1],
-                'rel_label': row[2],
-                'start': row[3],
-                'end': row[4],
-                'weight': float(row[5]) if row[5] else 1.0,
-                'dataset': row[6],
-                'surfaceText': row[7],
-            }
-            # Parse metadata if present
-            if row[8]:
-                try:
-                    edge['metadata'] = json.loads(row[8])
-                except:
-                    pass
-            edges.append(edge)
+        edges = [format_edge(row) for row in rows]
 
         cursor.close()
         return_db_connection(conn)
 
+        # Build @id for the query
+        query_params = []
+        if start:
+            query_params.append(f"start={start}")
+        if end:
+            query_params.append(f"end={end}")
+        if node:
+            query_params.append(f"node={node}")
+        if rel:
+            query_params.append(f"rel={rel}")
+        if min_weight:
+            query_params.append(f"minWeight={min_weight}")
+        query_params.append(f"limit={limit}")
+        query_params.append(f"offset={offset}")
+
+        query_id = f"/query?{'&'.join(query_params)}"
+
         return jsonify({
-            'edges': edges,
-            'count': len(edges),
-            'limit': limit,
-            'offset': offset,
-            'filters': {
-                'start': start,
-                'end': end,
-                'node': node,
-                'rel': rel,
-                'minWeight': min_weight
-            }
+            '@id': query_id,
+            'edges': edges
         })
 
     except Exception as e:

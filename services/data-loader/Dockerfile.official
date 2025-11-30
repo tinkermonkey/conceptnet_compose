@@ -1,0 +1,31 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    postgresql-client \
+    libhdf5-dev \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Clone ConceptNet5 repository (for db connection utilities only)
+RUN git clone --depth 1 https://github.com/commonsense/conceptnet5.git /tmp/conceptnet5
+
+# Install ConceptNet5
+RUN cd /tmp/conceptnet5 && pip install --no-cache-dir -e .
+
+# Install additional dependencies
+RUN pip install --no-cache-dir numpy scipy pandas requests tqdm psycopg2-binary
+
+# Copy loader scripts and config
+COPY loader-improved.py load_embeddings.py config.py download_data.py /app/
+RUN chmod +x /app/loader-improved.py /app/load_embeddings.py
+
+# Create data directories
+RUN mkdir -p /data/raw /data/processed
+
+CMD ["python", "/app/loader-improved.py"]

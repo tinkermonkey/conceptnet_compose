@@ -28,7 +28,7 @@ services:
   data-loader:
     build:
       context: ./services/data-loader
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.official
     container_name: conceptnet-data-loader
     depends_on:
       postgres:
@@ -45,11 +45,13 @@ services:
       - conceptnet
     profiles:
       - tools
+    stdin_open: true
+    tty: true
 
   api:
     build:
       context: ./services/api
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.official
     container_name: conceptnet-api
     restart: unless-stopped
     depends_on:
@@ -61,15 +63,18 @@ services:
       CONCEPTNET_DB_NAME: ${POSTGRES_DB:-conceptnet5}
       CONCEPTNET_DB_USER: ${POSTGRES_USER:-conceptnet}
       CONCEPTNET_DB_PASSWORD: ${POSTGRES_PASSWORD:-conceptnet123}
-      API_HOST: 0.0.0.0
-      API_PORT: 8084
-      DEBUG: ${DEBUG:-False}
+      POSTGRES_USER: ${POSTGRES_USER:-conceptnet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conceptnet123}
+      DB_NAME: ${POSTGRES_DB:-conceptnet5}
+      DB_HOST: postgres
     ports:
       - "${API_PORT:-8084}:8084"
+    volumes:
+      - ./data/vectors:/data/vectors:ro
     networks:
       - conceptnet
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/').read()"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -12,7 +12,7 @@ DB_CONFIG = {
     'password': os.getenv('CONCEPTNET_DB_PASSWORD', 'conceptnet123'),
 }
 
-# Data source URLs
+# Data source URLs - using 5.7.0 data (latest available)
 DATA_SOURCES = {
     'assertions': {
         'url': 'https://s3.amazonaws.com/conceptnet/downloads/2019/edges/conceptnet-assertions-5.7.0.csv.gz',
