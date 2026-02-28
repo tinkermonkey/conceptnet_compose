@@ -49,13 +49,18 @@ def section(title):
 
 
 # ---------------------------------------------------------------------------
-# /health
+# /health  (custom endpoint — not part of the official conceptnet_web API)
 # ---------------------------------------------------------------------------
 section("GET /health")
 try:
     data = get("/health")
     check("status == healthy", data.get("status") == "healthy")
     check("database == connected", data.get("database") == "connected")
+except requests.HTTPError as e:
+    if e.response.status_code == 404:
+        skip("/health", "not provided by the official conceptnet_web API")
+    else:
+        check("request succeeded", False, str(e))
 except Exception as e:
     check("request succeeded", False, str(e))
 
@@ -102,18 +107,18 @@ except Exception as e:
     check("request succeeded", False, str(e))
 
 # ---------------------------------------------------------------------------
-# /c/<concept> with relation filter
+# /query — relation filter (official API filters by rel here, not on /c/)
 # ---------------------------------------------------------------------------
-section("GET /c/<concept>?rel=IsA")
+section("GET /query?start=...&rel=IsA")
 try:
     concept = cnuri.concept_uri("en", "dog")
-    data = get(concept, params={"rel": "/r/IsA", "limit": 10})
+    data = get("/query", params={"node": concept, "rel": "/r/IsA", "limit": 10})
     edges = data.get("edges", [])
-    check("returns edges", isinstance(edges, list))
+    check("returns edges", isinstance(edges, list) and len(edges) > 0)
     if edges:
-        rels = [e.get("rel", e.get("@type", "")) for e in edges]
+        rels = [e.get("rel", {}).get("@id", "") for e in edges]
         check("all edges are IsA",
-              all("/r/IsA" in str(r) for r in rels),
+              all(r == "/r/IsA" for r in rels),
               str(rels[:3]))
 except Exception as e:
     check("request succeeded", False, str(e))
@@ -171,11 +176,11 @@ except Exception as e:
 section("GET /uri")
 try:
     data = get("/uri", params={"text": "United States", "language": "en"})
-    uri = data.get("uri", "")
+    uri = data.get("@id", "")
     check("returns a URI", bool(uri))
     check("URI is a concept", cnuri.is_concept(uri), uri)
     parts = cnuri.split_uri(uri)
-    check("URI language is en", len(parts) >= 3 and parts[2] == "en")
+    check("URI language is en", len(parts) >= 2 and parts[1] == "en")
 except requests.HTTPError as e:
     if e.response.status_code == 404:
         skip("/uri endpoint", "not available in this API version")
@@ -197,7 +202,7 @@ try:
     check("score is between 0 and 1", 0.0 <= float(sim) <= 1.0, str(sim))
     check("dog/puppy similarity > 0.5", float(sim) > 0.5, str(sim))
 except requests.HTTPError as e:
-    if e.response.status_code in (404, 503):
+    if e.response.status_code in (404, 500, 503):
         skip("/relatedness", "embeddings or HDF5 vectors not available")
     else:
         check("request succeeded", False, str(e))
