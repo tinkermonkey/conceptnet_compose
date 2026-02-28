@@ -1,8 +1,9 @@
-# Data files (large downloads)
+# Data files (large downloads and generated binaries)
 data/raw/*.csv
 data/raw/*.txt
 data/raw/*.gz
 data/processed/
+data/vectors/
 
 # Environment variables (contains passwords)
 .env
