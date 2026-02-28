@@ -85,10 +85,9 @@ For the data-loader, `loader-improved.py` is the production loader (populates al
 - **Embeddings extension** (`02-create-embeddings.sql`): `embeddings` table with 300-dimensional pgvector columns and an HNSW index for fast cosine similarity search
 
 ### API configuration
-Config is read from environment variables (see `services/api/config.py`):
+Config is passed via environment variables defined in `docker-compose.yml`:
 - `CONCEPTNET_DB_HOSTNAME`, `CONCEPTNET_DB_PORT`, `CONCEPTNET_DB_NAME`, `CONCEPTNET_DB_USER`, `CONCEPTNET_DB_PASSWORD`
 - API runs on port `8084` (configurable via `API_PORT`)
-- Connection pool: min=2, max=10 threads
 
 ### ConceptNet URI format
 - Concepts: `/c/{language}/{term}` — e.g., `/c/en/dog`
@@ -96,9 +95,16 @@ Config is read from environment variables (see `services/api/config.py`):
 - The API auto-prefixes bare terms (e.g., `dog` → `/c/en/dog`, `IsA` → `/r/IsA`)
 
 ### Semantic similarity
-The `/relatedness` and `/related` endpoints use pgvector's `<=>` operator (cosine distance) against the `embeddings` table. These only work for English concepts that appear in the Numberbatch dataset (~516K concepts). The official ConceptNet API's vector endpoints require HDF5 files which are not set up here.
+The `/relatedness` and `/related` endpoints require `data/vectors/mini.h5` — a pandas HDF5 file (key `mat`) where the index is concept URIs and columns are the 300 vector dimensions. Generate it once from the already-downloaded Numberbatch text file:
+
+```bash
+pip install pandas tables numpy
+python generate_vectors.py
+```
+
+Then restart the API (`docker-compose restart api`). The file is mounted into the container at `/app/data/vectors/mini.h5`.
 
 ### Performance notes
 - PostgreSQL needs 4-6GB RAM with full dataset; 8GB+ total system RAM recommended
 - Reduce `BATCH_SIZE` in `services/data-loader/config.py` (default: 10000) if OOM during loading
-- Increase gunicorn workers in `services/api/start.sh` (default: 4) for higher throughput
+- Increase gunicorn workers in `services/api/start-official-fixed.sh` (default: 4) for higher throughput

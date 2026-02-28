@@ -69,7 +69,7 @@ services:
     ports:
       - "${API_PORT:-8084}:8084"
     volumes:
-      - ./data/vectors:/data/vectors:ro
+      - ./data/vectors:/app/data/vectors:ro
     networks:
       - conceptnet
     healthcheck:
