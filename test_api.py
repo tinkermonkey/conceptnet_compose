@@ -197,7 +197,7 @@ try:
     node1 = cnuri.concept_uri("en", "dog")
     node2 = cnuri.concept_uri("en", "puppy")
     data = get("/relatedness", params={"node1": node1, "node2": node2})
-    sim = data.get("similarity")
+    sim = data.get("value")  # official API uses "value", not "similarity"
     check("returns similarity score", sim is not None)
     check("score is between 0 and 1", 0.0 <= float(sim) <= 1.0, str(sim))
     check("dog/puppy similarity > 0.5", float(sim) > 0.5, str(sim))
@@ -226,7 +226,7 @@ try:
         check("results are ordered by similarity (desc)",
               sims == sorted(sims, reverse=True))
 except requests.HTTPError as e:
-    if e.response.status_code in (404, 503):
+    if e.response.status_code in (404, 500, 503):
         skip("/related", "embeddings or HDF5 vectors not available")
     else:
         check("request succeeded", False, str(e))

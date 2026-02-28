@@ -1,8 +1,9 @@
 FROM python:3.11
 
-# Install system dependencies (only runtime dependencies, not build tools)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
+    libhdf5-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,9 +20,10 @@ RUN pip install --no-cache-dir \
     pygments \
     raven[flask]>=6.6 \
     psycopg2-binary \
-    numpy \
+    "numpy<2.0" \
+    "pandas<2.0" \
+    tables \
     scipy \
-    pandas \
     scikit-learn
 
 # Clone only the web API code (lightweight)

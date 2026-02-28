@@ -64,7 +64,7 @@ def main():
     df = pd.DataFrame(rows, index=index, dtype="float32")
 
     print(f"Writing {OUTPUT} ...")
-    df.to_hdf(OUTPUT, "mat", encoding="utf-8")
+    df.to_hdf(OUTPUT, key="mat", encoding="utf-8")
 
     size_mb = OUTPUT.stat().st_size / 1_048_576
     elapsed = time.time() - start
