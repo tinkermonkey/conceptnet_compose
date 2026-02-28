@@ -2,7 +2,7 @@
 
 ## Why this exists
 
-The official ConceptNet API (api.conceptnet.io) is not available for self-hosting — the upstream `conceptnet-deployment` repo targets AWS AMIs built with Packer/Puppet, and the published Docker images track ConceptNet 5.5.x, which is several major versions out of date. This project provides a Docker Compose stack that runs the same official `conceptnet_web` API (5.7.0 from PyPI + GitHub source) against a local PostgreSQL database loaded from the ConceptNet 5.7 assertions CSV.
+The official ConceptNet API ([api.conceptnet.io](https://api.conceptnet.io/)) is not available for self-hosting — the upstream [`conceptnet-deployment`](https://github.com/commonsense/conceptnet-deployment) repo targets AWS AMIs built with Packer/Puppet, and the [published Docker images](https://github.com/commonsense/conceptnet5/wiki/Docker) track ConceptNet 5.5.x, which is several major versions out of date. This project provides a Docker Compose stack that runs the same official `conceptnet_web` API ([5.7.0 from PyPI](https://pypi.org/project/ConceptNet/) + [GitHub source](https://github.com/commonsense/conceptnet5)) against a local PostgreSQL database loaded from the ConceptNet 5.7 assertions CSV.
 
 ## How it works
 
@@ -12,7 +12,7 @@ Three Docker services coordinate via an internal bridge network:
 
 **data-loader** — One-time job (Docker `tools` profile, not started by default). Downloads the ConceptNet 5.7 assertions CSV (~1.5GB compressed, ~9.5GB uncompressed) and loads all 34M+ edges into PostgreSQL at ~1,400 rows/sec. Takes 6–7 hours on typical hardware. A separate script (`load_embeddings.py`) loads Numberbatch vectors into the embeddings table (~4 minutes for 516K English concepts). Neither step needs to be repeated after the volume exists.
 
-**api** — Runs `conceptnet_web.api` (cloned from the official upstream repo at build time) via Flask on port 8084. Database credentials are injected via environment variables. The `/relatedness` and `/related` endpoints additionally require `data/vectors/mini.h5` (an HDF5 file generated once from the downloaded Numberbatch text file — see below).
+**api** — Runs `conceptnet_web.api` (cloned from the [official upstream repo](https://github.com/commonsense/conceptnet5) at build time) via Flask on port 8084. Database credentials are injected via environment variables. The `/relatedness` and `/related` endpoints additionally require `data/vectors/mini.h5` (an HDF5 file generated once from the downloaded Numberbatch text file — see below).
 
 ## Setup
 
