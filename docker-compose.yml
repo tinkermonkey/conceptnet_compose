@@ -3,7 +3,6 @@ services:
     build:
       context: ./services/postgres
       dockerfile: Dockerfile
-    image: conceptnet-postgres
     container_name: conceptnet-db
     restart: unless-stopped
     environment:
