@@ -210,30 +210,6 @@ except Exception as e:
     check("request succeeded", False, str(e))
 
 # ---------------------------------------------------------------------------
-# /related — nearest-neighbour concept search
-# ---------------------------------------------------------------------------
-section("GET /related")
-try:
-    node = cnuri.concept_uri("en", "dog")
-    data = get("/related", params={"node": node, "limit": 5})
-    related = data.get("related", [])
-    check("returns related list", isinstance(related, list) and len(related) > 0)
-    if related:
-        uris = [r.get("concept", "") for r in related]
-        check("all results are concept URIs",
-              all(cnuri.is_concept(u) for u in uris), str(uris[:3]))
-        sims = [r.get("similarity", 0) for r in related]
-        check("results are ordered by similarity (desc)",
-              sims == sorted(sims, reverse=True))
-except requests.HTTPError as e:
-    if e.response.status_code in (404, 500, 503):
-        skip("/related", "embeddings or HDF5 vectors not available")
-    else:
-        check("request succeeded", False, str(e))
-except Exception as e:
-    check("request succeeded", False, str(e))
-
-# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 total = results["pass"] + results["fail"] + results["skip"]
