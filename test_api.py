@@ -234,6 +234,103 @@ except Exception as e:
     check("request succeeded", False, str(e))
 
 # ---------------------------------------------------------------------------
+# /normalize — lemmatise/normalise text to a concept URI
+# ---------------------------------------------------------------------------
+section("GET /normalize")
+try:
+    data = get("/normalize", params={"text": "running", "language": "en"})
+    uri = data.get("@id", "")
+    check("returns a URI", bool(uri))
+    check("URI is a concept", cnuri.is_concept(uri), uri)
+    check("URI language is en", cnuri.get_uri_language(uri) == "en")
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /standardize — normalise text to a slug-style concept URI
+# ---------------------------------------------------------------------------
+section("GET /standardize")
+try:
+    data = get("/standardize", params={"text": "United States", "language": "en"})
+    uri = data.get("@id", "")
+    check("returns a URI", bool(uri))
+    check("URI is a concept", cnuri.is_concept(uri), uri)
+    check("spaces converted to underscores", "united_states" in uri)
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /search — full-text edge search
+# ---------------------------------------------------------------------------
+section("GET /search")
+try:
+    data = get("/search", params={"query": "dog", "language": "en", "limit": 5})
+    edges = data.get("edges", [])
+    check("returns edges list", isinstance(edges, list))
+    check("edges are non-empty", len(edges) > 0)
+    if edges:
+        check("edges have @id", all("@id" in e for e in edges))
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /r/<relation> — edges for a relation
+# ---------------------------------------------------------------------------
+section("GET /r/<relation>")
+try:
+    data = get("/r/IsA", params={"limit": 5})
+    edges = data.get("edges", [])
+    check("returns edges", isinstance(edges, list) and len(edges) > 0)
+    if edges:
+        rels = [e.get("rel", {}).get("@id", "") for e in edges]
+        check("all edges have IsA relation",
+              all(r == "/r/IsA" for r in rels), str(rels[:3]))
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /a/<assertion> — single assertion lookup (returns an edge object, not a list)
+# ---------------------------------------------------------------------------
+section("GET /a/<assertion>")
+try:
+    assertion = "/a/[/r/CapableOf/,/c/en/dog/,/c/en/bark/]"
+    data = get(assertion)
+    check("returns an Edge", data.get("@type") == "Edge")
+    check("@id matches assertion", data.get("@id") == assertion)
+    check("has start and end",
+          cnuri.is_concept(data.get("start", {}).get("@id", "")) and
+          cnuri.is_concept(data.get("end", {}).get("@id", "")))
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /d/<dataset> — edges from a dataset
+# ---------------------------------------------------------------------------
+section("GET /d/<dataset>")
+try:
+    dataset = "/d/conceptnet/4/en"
+    data = get(dataset, params={"limit": 5})
+    edges = data.get("edges", [])
+    check("returns edges", isinstance(edges, list) and len(edges) > 0)
+    if edges:
+        datasets = [e.get("dataset", "") for e in edges]
+        check("all edges from correct dataset",
+              all(d == dataset for d in datasets), str(datasets[:3]))
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
+# /s/<source> — edges from a source
+# ---------------------------------------------------------------------------
+section("GET /s/<source>")
+try:
+    data = get("/s/activity/omcs/commons2_template", params={"limit": 5})
+    edges = data.get("edges", [])
+    check("returns edges", isinstance(edges, list) and len(edges) > 0)
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 total = results["pass"] + results["fail"] + results["skip"]
