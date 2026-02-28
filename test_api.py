@@ -210,6 +210,30 @@ except Exception as e:
     check("request succeeded", False, str(e))
 
 # ---------------------------------------------------------------------------
+# /related/<uri> — vector nearest-neighbour search (path param, not query param)
+# ---------------------------------------------------------------------------
+section("GET /related/<uri>")
+try:
+    node = cnuri.concept_uri("en", "dog")
+    data = get(f"/related{node}", params={"limit": 5})
+    related = data.get("related", [])
+    check("returns related list", isinstance(related, list) and len(related) > 0)
+    if related:
+        uris = [r.get("@id", "") for r in related]
+        check("all results are concept URIs",
+              all(cnuri.is_concept(u) for u in uris), str(uris[:3]))
+        weights = [r.get("weight", 0) for r in related]
+        check("results are ordered by weight (desc)",
+              weights == sorted(weights, reverse=True))
+except requests.HTTPError as e:
+    if e.response.status_code in (404, 500, 503):
+        skip("/related/<uri>", "embeddings or HDF5 vectors not available")
+    else:
+        check("request succeeded", False, str(e))
+except Exception as e:
+    check("request succeeded", False, str(e))
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 total = results["pass"] + results["fail"] + results["skip"]
