@@ -8,7 +8,7 @@ This is a Docker Compose deployment of ConceptNet 5.7 — a local REST API for q
 
 - **postgres**: Custom PostgreSQL image with pgvector extension, seeded with the official ConceptNet schema
 - **data-loader**: One-time job that downloads and loads ~34M edges + Numberbatch embeddings into PostgreSQL
-- **api**: Flask/Gunicorn REST API serving ConceptNet graph queries and semantic similarity
+- **api**: Flask REST API serving ConceptNet graph queries and semantic similarity
 
 ## Common Commands
 
@@ -27,9 +27,10 @@ docker-compose up -d --build api
 docker-compose logs -f api
 docker-compose logs -f postgres
 
-# Check service health
+# Check service health (no dedicated /health route exists upstream — `/` is the
+# home page and what the Docker healthcheck hits)
 docker-compose ps
-curl http://localhost:8084/health
+curl http://localhost:8084/
 ```
 
 ### Data loading (one-time, takes 6-7 hours)
@@ -107,4 +108,4 @@ Then restart the API (`docker-compose restart api`). The file is mounted into th
 ### Performance notes
 - PostgreSQL needs 4-6GB RAM with full dataset; 8GB+ total system RAM recommended
 - Reduce `BATCH_SIZE` in `services/data-loader/config.py` (default: 10000) if OOM during loading
-- Increase gunicorn workers in `services/api/start-official-fixed.sh` (default: 4) for higher throughput
+- The API runs under Flask's built-in development server (`app.run(..., threaded=True)` in `services/api/run_api.py`) — fine for development and light traffic but not production-grade. For higher throughput, swap the `exec python /app/run_api.py` line in `services/api/start-official-fixed.sh` for `exec gunicorn -w 4 -b 0.0.0.0:8084 run_api:app` and add `gunicorn` to the `pip install` in `services/api/Dockerfile.official`.

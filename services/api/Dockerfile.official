@@ -26,6 +26,16 @@ RUN pip install --no-cache-dir \
     scipy \
     scikit-learn
 
+# Install OpenTelemetry SDK and instrumentation packages (pinned matched versions)
+RUN pip install --no-cache-dir \
+    opentelemetry-api==1.27.0 \
+    opentelemetry-sdk==1.27.0 \
+    opentelemetry-exporter-otlp-proto-grpc==1.27.0 \
+    opentelemetry-instrumentation-flask==0.48b0 \
+    opentelemetry-instrumentation-psycopg2==0.48b0 \
+    opentelemetry-instrumentation-requests==0.48b0 \
+    opentelemetry-instrumentation-logging==0.48b0
+
 # Clone only the web API code (lightweight)
 RUN apt-get update && apt-get install -y git && \
     git clone --depth 1 https://github.com/commonsense/conceptnet5.git /tmp/conceptnet5 && \
@@ -34,6 +44,10 @@ RUN apt-get update && apt-get install -y git && \
     apt-get remove -y git && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Copy OpenTelemetry init module and API entry point
+COPY telemetry.py /app/telemetry.py
+COPY run_api.py /app/run_api.py
 
 # Copy startup script
 COPY start-official-fixed.sh /app/start.sh

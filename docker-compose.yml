@@ -66,6 +66,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conceptnet123}
       DB_NAME: ${POSTGRES_DB:-conceptnet5}
       DB_HOST: postgres
+      # OpenTelemetry. Only vars the SDK actually reads at runtime are listed
+      # here; protocol/insecure/exporter selection live in services/api/telemetry.py.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://100.104.222.123:4317}
+      OTEL_EXPORTER_OTLP_TIMEOUT: "5000"
+      OTEL_SERVICE_NAME: conceptnet-api
+      OTEL_RESOURCE_ATTRIBUTES: "service.namespace=conceptnet,service.version=5.7.0,deployment.environment=${DEPLOYMENT_ENV:-local}"
+      OTEL_PYTHON_FLASK_EXCLUDED_URLS: "^/$$"
     ports:
       - "${API_PORT:-8084}:8084"
     volumes:
